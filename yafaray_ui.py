@@ -337,7 +337,7 @@ class clTabMaterial:
 		# lists
 		self.connector = []
 		# class-specific types and lists
-		self.matTypes = ["shinydiffusemat", "glossy", "coated_glossy", "glass", "Rough Glass", "blend"]
+		self.matTypes = ["shinydiffusemat", "glossy", "Glossy GGX", "coated_glossy", "glass", "Rough Glass", "blend"]
 		self.BRDFTypes = ["Normal (Lambert)", "Oren-Nayar"]
 
 		self.materials = []
@@ -636,10 +636,6 @@ class clTabMaterial:
 				height, 320, guiWidgetHeight, self.guiMatGlossyReflect.val, 0.0, 1.0, 0, "Amount of glossy reflection")
 
 			height += guiHeightOffset
-			self.guiMatExponent = Draw.Slider("Exponent: ", self.evEdit, 10,
-				height, 320, guiWidgetHeight, self.guiMatExponent.val, 1.0, 10000.0, 0, "Reflection blur, no effect if Anisotropic is on (1 = completely blured)")
-
-			height += guiHeightOffset
 			self.guiMatAsDiffuse = Draw.Toggle("As diffuse ", self.evEdit, 10,
 				height, 320, guiWidgetHeight, self.guiMatAsDiffuse.val, "Treat glossy component as diffuse")
 
@@ -654,6 +650,11 @@ class clTabMaterial:
 				height += guiHeightOffset
 				self.guiMatExpV = Draw.Slider("Exponent Vertical: ", self.evEdit, 10,
 					height, 320, guiWidgetHeight, self.guiMatExpV.val, 1.0, 10000.0, 0,"v-exponent for anisotropy")
+			else:
+				height += guiHeightOffset
+				self.guiMatExponent = Draw.Slider("Exponent: ", self.evEdit, 10,
+					height, 320, guiWidgetHeight, self.guiMatExponent.val, 1.0, 10000.0, 0, "Reflection blur, no effect if Anisotropic is on (1 = completely blured)")
+
 
 			if self.curMat['type'] == "coated_glossy": # extension for coatedGlossy material
 				height += guiHeightOffset
