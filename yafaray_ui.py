@@ -337,7 +337,7 @@ class clTabMaterial:
 		# lists
 		self.connector = []
 		# class-specific types and lists
-		self.matTypes = ["shinydiffusemat", "glossy", "Glossy GGX", "coated_glossy", "glass", "Rough Glass", "blend"]
+		self.matTypes = ["shinydiffusemat", "glossy", "coated_glossy", "glass", "Rough Glass", "blend"]
 		self.BRDFTypes = ["Normal (Lambert)", "Oren-Nayar"]
 
 		self.materials = []
