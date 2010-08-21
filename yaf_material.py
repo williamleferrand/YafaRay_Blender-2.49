@@ -226,6 +226,8 @@ class yafMaterial:
 		if coated:
 			yi.paramsSetString("type", "coated_glossy")
 			yi.paramsSetFloat("IOR", props["IOR"])
+			mir_col = props["mirror_color"]
+			yi.paramsSetColor("mirror_color", mir_col[0], mir_col[1], mir_col[2])
 		else:
 			yi.paramsSetString("type", "glossy")
 		

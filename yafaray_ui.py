@@ -626,6 +626,12 @@ class clTabMaterial:
 			drawText(10, height + 4, "Glossy color:")
 			self.guiMatColor = Draw.ColorPicker(self.evEdit, 100,
 				height, 230, guiWidgetHeight, self.guiMatColor.val, "Glossy Color")
+			
+			if self.curMat['type'] == "coated_glossy":
+				height += guiHeightOffset
+				drawText(10, height + 4, "Mirror color:")
+				self.guiMatMirrorColor = Draw.ColorPicker(self.evEdit, 100, height,
+					230, guiWidgetHeight, self.guiMatMirrorColor.val, "Filter color applied for reflected light")
 
 			height += guiHeightOffset
 			self.guiMatDiffuse = Draw.Slider("Diffuse reflection: ", self.evEdit, 10,
