@@ -196,7 +196,7 @@ class yafrayRender:
 			self.yi.paramsSetBool("z_channel", self.scene.properties["YafRay"]["Renderer"]["z_channel"])
 			
 			ih = self.yi.createImageHandler("outFile")
-			co = yafrayinterface.imageOutput_t(ih, outputFile)
+			co = yafrayinterface.imageOutput_t(ih, outputFile, bStartX, bStartY)
 			
 			self.yi.printInfo("Exporter: Rendering to file " + outputFile)
 		
