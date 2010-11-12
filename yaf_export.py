@@ -891,6 +891,7 @@ class yafrayRender:
 		Window.DrawProgressBar(0.0, "YafaRay rendering ...")
 		self.startRender(renderCoords, output)
 		Window.DrawProgressBar(1.0, "YafaRay rendering ...")
+		return output # return output filename
 
 	# render an animation, renders the frames as defined in the blender
 	# UI, render to the output dir on F10 unless the string is empty
