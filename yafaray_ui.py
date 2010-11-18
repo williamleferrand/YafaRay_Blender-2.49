@@ -96,7 +96,7 @@ import os.path
 
 import yaf_export
 from yaf_export import yafrayRender
-from corefarm import Farm
+from corefarm import Farm, AccessForbiddenError
 import yafrayinterface
 
 from Blender import *
@@ -2776,7 +2776,10 @@ def button_event(evt):  # the function to handle Draw Button events
 					TabFarmSettings.guiRenderOutputMethod.val,
 					TabFarmSettings.guiGHZ.val,
 				)
-				farm.render(output[1])
+				try:
+					farm.render(output[1])
+				except AccessForbiddenError:
+					button_event(TabFarmSettings.evShow)
 
 		elif evt == evRenderView:
 			yRender.render(True)

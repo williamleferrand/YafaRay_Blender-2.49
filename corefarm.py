@@ -32,6 +32,7 @@ if DEBUG_HTTP:
 
 
 class CoreFarmError(RuntimeWarning): pass
+class AccessForbiddenError(CoreFarmError): pass
 
 
 class Farm(object):
@@ -51,7 +52,6 @@ class Farm(object):
 
 			Blender.Window.DrawProgressBar(0.25, "Creating a job ...")
 			job_id = self._get_new_job()
-			#job_id = 'test-%s' % int(time.time())
 
 			if job_id:
 				Blender.Window.DrawProgressBar(0.5, "Uploading the data ...")
@@ -74,6 +74,10 @@ class Farm(object):
 		except CoreFarmError, e:
 			Blender.Draw.PupMenu(unicode(e))
 			Blender.Window.DrawProgressBar(1.0, "Done with warning")
+			if isinstance(e, AccessForbiddenError):
+				""" Reraise exception to handle it in the event loop.
+				"""
+				raise
 		except Exception:
 			self._log.exception('render failed')
 			Blender.Window.DrawProgressBar(1.0, "Done with error")
@@ -124,7 +128,10 @@ class Farm(object):
 		result = simplejson.loads(result)
 
 		if 'msg' in result:
-			raise CoreFarmError(result['msg'])
+			if 'forbidden' in result['msg'].lower():
+				raise AccessForbiddenError(result['msg'])
+			else:
+				raise CoreFarmError(result['msg'])
 		elif 'id' in result:
 			return result['id']
 		else:
