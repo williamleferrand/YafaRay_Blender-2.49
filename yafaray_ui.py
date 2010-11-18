@@ -8,7 +8,7 @@ Group: 'Render'
 Tooltip: 'YafaRay Export'
 """
 
-__author__ = ['Bert Buchholz, Alvaro Luna, Michele Castigliego, Rodrigo Placencia']
+__author__ = ['Bert Buchholz, Alvaro Luna, Michele Castigliego, Rodrigo Placencia, Alexander Artemenko']
 __version__ = '0.1.2-Beta2'
 __url__ = ['http://yafaray.org']
 __bpydoc__ = ""
@@ -2636,12 +2636,28 @@ class clTabFarmSettings:
 			self.evEdit, 180, height-2, 150, guiWidgetHeight, self.guiRenderOutputMethod.val, "Selects output method for render result")
 
 		height = drawSepLineText(10, height, 320, "Farm resources")
-#		drawText(20, height+2, "CPU power:", "normal")
-#		self.guiRenderOutputMethod = Draw.Menu(makeMenu("Output method", self.OutputMethodTypes),
-#			self.evEdit, 180, height-2, 150, guiWidgetHeight, self.guiRenderOutputMethod.val, "Selects output method for render result")
+
+		prev_value = [self.guiGHZ.val]
+		def round_value(event, value):
+			""" Callback to dynamically
+				round CPU power value
+			"""
+			step = 5
+			round = lambda x: (x + (step / 2)) / step * step
+			log.debug('CPU power changed from %s to %s' % (prev_value[0], value))
+			delta = value - prev_value[0]
+			if delta == 1:
+				value = round(value + (step / 2))
+			elif delta == -1:
+				value = round(value - (step / 2))
+			else:
+				value = round(value)
+			self.guiGHZ.val = value
+			prev_value[0] = value
+
 		self.guiGHZ = Draw.Number("CPU power: ", self.evEdit, 10,
-			height, 150, guiWidgetHeight, self.guiGHZ.val, 1.0, 100.0, "Select CPU power to use in GHZ.",
-			dummyfunc, 10.0, 1.0)
+			height, 150, guiWidgetHeight, self.guiGHZ.val, 1.0, 495.0, "Select CPU power to use in GHZ.",
+			round_value)
 
 		PanelHeight = height
 
