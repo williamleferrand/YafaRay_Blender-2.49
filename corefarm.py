@@ -117,7 +117,8 @@ class Farm(object):
 		)
 
 		self._log.debug('Fetching the URL: %r' % url)
-		result = urllib.urlopen(url).read()
+		request = urllib2.Request(url, headers = {'User-Agent': USER_AGENT})
+		result = opener.open(request).read()
 
 		self._log.debug('Result is: %r' % result)
 		result = simplejson.loads(result)
@@ -150,7 +151,8 @@ class Farm(object):
 		)
 
 		self._log.debug('Fetching the URL: %r' % url)
-		result = urllib.urlopen(url).read()
+		request = urllib2.Request(url, headers = {'User-Agent': USER_AGENT})
+		result = opener.open(request).read()
 
 		self._log.debug('Result is: %r' % result)
 		result = simplejson.loads(result)
