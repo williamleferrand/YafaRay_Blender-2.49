@@ -169,7 +169,7 @@ class Farm(object):
 				'User-Agent': USER_AGENT,
 			}
 			data = dict(
-				key = '%s${filename}' % job_id,
+				key = '%s/${filename}' % job_id,
 				redirect = 'http://www.corefarm.com/submit/yafaray',
 				acl = 'public-read',
 				file = f,
