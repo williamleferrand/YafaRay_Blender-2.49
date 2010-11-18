@@ -101,11 +101,15 @@ import yafrayinterface
 
 from Blender import *
 
-logging.basicConfig(
-	filename = '/tmp/yafaray-export.log',
-	level = logging.DEBUG,
-	format = '%(asctime)s %(process)s/%(thread)s %(levelname)s %(name)s %(filename)s:%(lineno)s %(message)s',
-)
+DEBUG = False
+HOME = os.environ.get('HOME', None)
+
+if DEBUG and HOME is not None:
+	logging.basicConfig(
+		filename = os.path.join(HOME, 'yafaray-export.log'),
+		level = logging.DEBUG,
+		format = '%(asctime)s %(process)s/%(thread)s %(levelname)s %(name)s %(filename)s:%(lineno)s %(message)s',
+	)
 log = logging.getLogger('yafaray.export')
 
 yaf_export.haveQt = haveQt
