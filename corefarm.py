@@ -158,7 +158,10 @@ class Farm(object):
 		result = simplejson.loads(result)
 
 		if 'msg' in result:
-			raise CoreFarmError(result['msg'])
+			if result['msg'] == 'success':
+				Blender.Draw.PupMenu('Data was uploaded to the corefarm. Please check job\'s status at: http://corfarm.com/manager')
+			else:
+				raise CoreFarmError(result['msg'])
 		else:
 			raise RuntimeError('Unknown result from the server')
 
