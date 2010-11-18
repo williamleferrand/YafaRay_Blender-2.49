@@ -199,10 +199,7 @@ class Farm(object):
 
 		def make_path_local(match):
 			full_path = match.group(2)
-			local_path = Blender.sys.relpath(
-				full_path,
-				xml_filename
-			)
+			local_path = os.path.basename(full_path)
 			files.append((full_path, local_path))
 			return match.group(1) + local_path
 
