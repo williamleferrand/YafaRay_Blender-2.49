@@ -1704,6 +1704,17 @@ class clTabRender:
 			drawText(20, height+4, "Output file format:", "normal")
 			self.guiRenderOutputFileType = Draw.Menu(makeMenu("File type", self.OutputFileTypes),
 				self.evEdit, 180, height, 150, guiWidgetHeight, self.guiRenderOutputFileType.val, "Image is saved in this file format")
+			height += guiHeightOffset
+			drawText(20, height+4, "Render tile size in pixels:", "normal")
+			self.guiRenderTileSize = Draw.Number("Tile Size: ", self.evEdit, 180,
+				height, 150, guiWidgetHeight, self.guiRenderTileSize.val, 0, 1024, "Size of ther render buckets (tiles)")
+
+		if self.OutputMethodTypes[self.guiRenderOutputMethod.val] == "XML":
+			height = drawSepLineText(10, height, 320, "XML output options")
+			drawText(20, height+4, "Render tile size in pixels:", "normal")
+			self.guiRenderTileSize = Draw.Number("Tile Size: ", self.evEdit, 180,
+				height, 150, guiWidgetHeight, self.guiRenderTileSize.val, 0, 1024, "Size of ther render buckets (tiles)")
+
 
 		height += guiHeightOffset
 		self.guiRenderDrawParams = Draw.Toggle("Draw render params", self.evEdit, 10,
