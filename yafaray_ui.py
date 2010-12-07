@@ -2777,7 +2777,7 @@ def button_event(evt):  # the function to handle Draw Button events
 		if evt == evRenderOnCorefarm:
 			log.debug("Changing output settings to produce XML")
 			TabRenderer.guiRenderOutputMethod.val = TabRenderer.OutputMethodTypes.index("XML")
-			#TabRenderer.event() # <- This overwrite the TabRender parameters with 0 if we did not visit the settings page !
+			TabRenderer.event() 
 
 		# Initialize interface
 		if TabRenderer.Renderer["output_method"] == "XML":
