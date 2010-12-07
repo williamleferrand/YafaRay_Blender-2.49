@@ -301,6 +301,8 @@ def setGUIVals(gui, key, poly, field):
 
 # checks if key exists in field and if not, create property and assign initial value
 def checkParam(gui, key, poly, field):
+	#print ("Key: " + key)
+	#print poly
 	try:
 		if not field.has_key(key):
 			if type(poly) == list: # lists (for menus)
@@ -1440,6 +1442,7 @@ class clTabWorld:
 class clTabRender:
 	def __init__(self):
 		# events
+		print "Initializing TAB RENDERER"
 		self.evShow = getUniqueValue()
 		self.evEdit = getUniqueValue()
 		self.evChangeRenderset = getUniqueValue()
@@ -1597,6 +1600,7 @@ class clTabRender:
 				#setname = [ s for s in self.Settings][0]
 				setname = self.oSettings[0]
 				#self.Renderer = self.scene.properties['YafRay']['Settings']['rendersets']['Render Set']
+		print ("Self Renderer: " + setname)
 		self.Renderer = self.Settings[setname]
 
 		# connect gui elements with id properties
@@ -2659,8 +2663,8 @@ class clTabFarmSettings:
 			self.guiGHZ.val = value
 			prev_value[0] = value
 
-		self.guiGHZ = Draw.Number("CPU power: ", self.evEdit, 10,
-			height, 150, guiWidgetHeight, self.guiGHZ.val, 1.0, 495.0, "Select CPU power to use in GHZ.",
+		self.guiGHZ = Draw.Number("CPU size (in ghz): ", self.evEdit, 10,
+			height, 150, guiWidgetHeight, self.guiGHZ.val, 5.0, 495.0, "Select CPU power to use in Ghz.",
 			round_value)
 
 		PanelHeight = height
@@ -2743,8 +2747,12 @@ def button_event(evt):  # the function to handle Draw Button events
 		# execute all init methods to ensure all properties are
 		# initialized.  only on objects and materials, render settings
 		# seem to be pointless, since they should be set by the user at
-		# least once in any case
+		# least once in any case --> not that pointless in case of 
+		
+		print "Set property list in TabRenderer"
 		TabRenderer.setPropertyList()
+		print "Set property list in TabRenderer done" 
+
 		for obj in Blender.Scene.GetCurrent().objects:
 			TabObject.setPropertyList(obj)
 
@@ -2753,10 +2761,12 @@ def button_event(evt):  # the function to handle Draw Button events
 			TabMaterial.setPropertyList(mat)
 		TabMaterial.curMat = tmpMat
 
+		
+
 		if evt == evRenderOnCorefarm:
 			log.debug("Changing output settings to produce XML")
 			TabRenderer.guiRenderOutputMethod.val = TabRenderer.OutputMethodTypes.index("XML")
-			TabRenderer.event()
+			#TabRenderer.event() # <- This overwrite the TabRender parameters with 0 if we did not visit the settings page !
 
 		# Initialize interface
 		if TabRenderer.Renderer["output_method"] == "XML":

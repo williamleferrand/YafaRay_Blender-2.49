@@ -57,7 +57,7 @@ class Farm(object):
 				Blender.Window.DrawProgressBar(0.5, "Uploading the data ...")
 				self._upload(job_id, datafile)
 
-				Blender.Window.DrawProgressBar(0.75, "Starting render on the farm ...")
+				Blender.Window.DrawProgressBar(0.75, "Start rendering on the farm ...")
 				self._start_job(job_id)
 
 				Blender.Window.DrawProgressBar(1.0, "Done")
@@ -68,7 +68,7 @@ class Farm(object):
 		except IOError, e:
 			Blender.Window.DrawProgressBar(1.0, "Done with warning")
 			if e.errno == 'socket error':
-				Blender.Draw.PupMenu('Service is unavailable, please, try later.')
+				Blender.Draw.PupMenu('Service is unavailable, please try later.')
 			else:
 				raise
 		except CoreFarmError, e:
@@ -166,7 +166,7 @@ class Farm(object):
 
 		if 'msg' in result:
 			if result['msg'] == 'success':
-				Blender.Draw.PupMenu('Data was uploaded to the corefarm. Please check job\'s status at: http://corfarm.com/manager')
+				Blender.Draw.PupMenu('Your job is now running. You can track its status from your manager on www.corefarm.com; you will also receive an email when it is completed. Thanks!')
 			else:
 				raise CoreFarmError(result['msg'])
 		else:
