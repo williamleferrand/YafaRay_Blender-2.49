@@ -1,5 +1,4 @@
 #!BPY
-from __future__ import with_statement
 
 """
 Name: 'YafaRay Export 0.1.2'
@@ -8,7 +7,7 @@ Group: 'Render'
 Tooltip: 'YafaRay Export'
 """
 
-__author__ = ['Bert Buchholz, Alvaro Luna, Michele Castigliego, Rodrigo Placencia, Alexander Artemenko']
+__author__ = ['Bert Buchholz, Alvaro Luna, Michele Castigliego, Rodrigo Placencia']
 __version__ = '0.1.2-Beta2'
 __url__ = ['http://yafaray.org']
 __bpydoc__ = ""
@@ -90,75 +89,18 @@ if haveQt:
 
 import string
 import math
-import logging
-import pickle
-import os.path
 
 import yaf_export
 from yaf_export import yafrayRender
-from corefarm import Farm, AccessForbiddenError
 import yafrayinterface
 
 from Blender import *
-
-DEBUG = False
-HOME = os.environ.get('HOME', None)
-
-if DEBUG and HOME is not None:
-	logging.basicConfig(
-		filename = os.path.join(HOME, 'yafaray-export.log'),
-		level = logging.DEBUG,
-		format = '%(asctime)s %(process)s/%(thread)s %(levelname)s %(name)s %(filename)s:%(lineno)s %(message)s',
-	)
-log = logging.getLogger('yafaray.export')
 
 yaf_export.haveQt = haveQt
 
 yRender = yafrayRender()
 yInterface = yafrayinterface.yafrayInterface_t()
 yInterface.loadPlugins(dllPath)
-
-
-class Settings(object):
-	""" A dict-like object which automatically
-		saves all content to the Blender's Registry.
-	"""
-	def __init__(self, key_name = 'YafaRay'):
-		self._data_filename = os.path.join(Blender.Get('datadir'), key_name + '.dat')
-		self._load()
-
-	def __getitem__(self, key):
-		return self._data.get(key, None)
-
-	def __setitem__(self, key, value):
-		self._data[key] = value
-		self._save()
-
-	def get(self, key, default = None):
-		return self._data.get(key, default)
-
-	def update(self, item_tuples):
-		""" Batch update of the values in the dict.
-		"""
-		for key, value in item_tuples:
-			self._data[key] = value
-		self._save()
-
-	def _load(self):
-		try:
-			with open(self._data_filename) as f:
-				self._data = pickle.load(f)
-		except:
-			log.exception("Can't load settings from %r" % self._data_filename)
-			self._data = {}
-
-	def _save(self):
-		try:
-			with open(self._data_filename, 'w') as f:
-				pickle.dump(self._data, f)
-		except:
-			log.exception("Can't save settings to %r" % self._data_filename)
-
 
 #####################################
 #
@@ -248,11 +190,13 @@ def drawTextParagraph(x, y, maxWidth, text, size = "small"):
 	return y
 
 # create a menu string for blender draw.menu out of a list of strings
-def makeMenu(text, lst):
+def makeMenu(text, list):
+	i = 0
 	MenuStr = text + "%t|"
 
-	for i, c in enumerate(lst):
+	for c in list:
 		MenuStr += c + " %x" + str(i) + "|"
+		i = i + 1
 
 	return MenuStr
 
@@ -301,8 +245,6 @@ def setGUIVals(gui, key, poly, field):
 
 # checks if key exists in field and if not, create property and assign initial value
 def checkParam(gui, key, poly, field):
-	#print ("Key: " + key)
-	#print poly
 	try:
 		if not field.has_key(key):
 			if type(poly) == list: # lists (for menus)
@@ -1442,7 +1384,6 @@ class clTabWorld:
 class clTabRender:
 	def __init__(self):
 		# events
-		print "Initializing TAB RENDERER"
 		self.evShow = getUniqueValue()
 		self.evEdit = getUniqueValue()
 		self.evChangeRenderset = getUniqueValue()
@@ -1600,7 +1541,6 @@ class clTabRender:
 				#setname = [ s for s in self.Settings][0]
 				setname = self.oSettings[0]
 				#self.Renderer = self.scene.properties['YafRay']['Settings']['rendersets']['Render Set']
-		print ("Self Renderer: " + setname)
 		self.Renderer = self.Settings[setname]
 
 		# connect gui elements with id properties
@@ -2609,79 +2549,6 @@ class clTabObject:
 
 
 
-# ### tab corefarm settings ### #
-
-class clTabFarmSettings:
-	def __init__(self):
-		# events
-		self.evShow = getUniqueValue()
-		self.evEdit = getUniqueValue()
-		self.tabNum = getUniqueValue()
-		self.OutputMethodTypes = ["TGA", "HDR"]
-		self.settings = s = Settings("YafaRay.corefarm")
-
-		# gui elements
-		self.guiLogin = Draw.Create(s.get("login", "")) # string
-		self.guiKey = Draw.Create(s.get("key", "")) # string
-		self.guiRenderOutputMethod = Draw.Create(s.get("output_method", 0)) # dropdown
-		self.guiGHZ = Draw.Create(s.get("ghz", 50)) # string
-
-	def draw(self, height):
-		global PanelHeight
-
-		drawText(10, height, "Corefarm settings", "large")
-		height = drawSepLineText(10, height, 320, "Credentials")
-
-		self.guiLogin = Draw.String("Login: ", self.evEdit, 10, height, 150,
-			guiWidgetHeight, self.guiLogin.val, 50, "Your login at corefarm.com")
-
-		self.guiKey = Draw.String("Password: ", self.evEdit, 170, height, 150,
-			guiWidgetHeight, self.guiKey.val, 50, "Your password at corefarm.com")
-
-		height = drawSepLineText(10, height, 320, "Output method")
-		drawText(20, height+2, "Select the output method:", "normal")
-		self.guiRenderOutputMethod = Draw.Menu(makeMenu("Output method", self.OutputMethodTypes),
-			self.evEdit, 180, height-2, 150, guiWidgetHeight, self.guiRenderOutputMethod.val, "Selects output method for render result")
-
-		height = drawSepLineText(10, height, 320, "Farm resources")
-
-		prev_value = [self.guiGHZ.val]
-		def round_value(event, value):
-			""" Callback to dynamically
-				round CPU power value
-			"""
-			step = 5
-			round = lambda x: (x + (step / 2)) / step * step
-			log.debug('CPU power changed from %s to %s' % (prev_value[0], value))
-			delta = value - prev_value[0]
-			if delta == 1:
-				value = round(value + (step / 2))
-			elif delta == -1:
-				value = round(value - (step / 2))
-			else:
-				value = round(value)
-			self.guiGHZ.val = value
-			prev_value[0] = value
-
-		self.guiGHZ = Draw.Number("CPU size (in ghz): ", self.evEdit, 10,
-			height, 150, guiWidgetHeight, self.guiGHZ.val, 5.0, 495.0, "Select CPU power to use in Ghz.",
-			round_value)
-
-		PanelHeight = height
-
-	def event(self):
-		log.debug('Saving settings')
-		items = (
-			('login', self.guiLogin.val),
-			('key', self.guiKey.val),
-			('output_method', self.guiRenderOutputMethod.val),
-			('ghz', self.guiGHZ.val),
-		)
-		self.settings.update(items)
-
-# ### end clTabFarmSettings ### #
-
-
 def event(evt, val):	# the function to handle input events
 	global lastMousePosX, lastMousePosY, guiDrawOffset, middlePressed, currentSelection, PanelHeight
 
@@ -2743,16 +2610,12 @@ def button_event(evt):  # the function to handle Draw Button events
 
 	if evt == evShowHelp:
 		Tab = helpTab
-	elif evt in (evRender, evRenderAnim, evRenderView, evRenderOnCorefarm):
+	elif evt == evRender or evt == evRenderAnim or evt == evRenderView:
 		# execute all init methods to ensure all properties are
 		# initialized.  only on objects and materials, render settings
 		# seem to be pointless, since they should be set by the user at
-		# least once in any case --> not that pointless in case of 
-		
-		print "Set property list in TabRenderer"
+		# least once in any case
 		TabRenderer.setPropertyList()
-		print "Set property list in TabRenderer done" 
-
 		for obj in Blender.Scene.GetCurrent().objects:
 			TabObject.setPropertyList(obj)
 
@@ -2760,13 +2623,6 @@ def button_event(evt):  # the function to handle Draw Button events
 		for mat in Blender.Material.Get():
 			TabMaterial.setPropertyList(mat)
 		TabMaterial.curMat = tmpMat
-
-		
-
-		if evt == evRenderOnCorefarm:
-			log.debug("Changing output settings to produce XML")
-			TabRenderer.guiRenderOutputMethod.val = TabRenderer.OutputMethodTypes.index("XML")
-			#TabRenderer.event() # <- This overwrite the TabRender parameters with 0 if we did not visit the settings page !
 
 		# Initialize interface
 		if TabRenderer.Renderer["output_method"] == "XML":
@@ -2777,20 +2633,8 @@ def button_event(evt):  # the function to handle Draw Button events
 
 		yRender.setInterface(yinterface)
 
-		if evt in (evRender, evRenderOnCorefarm):
-			output = yRender.render()
-			if evt == evRenderOnCorefarm:
-				farm = Farm(
-					TabFarmSettings.guiLogin.val,
-					TabFarmSettings.guiKey.val,
-					TabFarmSettings.guiRenderOutputMethod.val,
-					TabFarmSettings.guiGHZ.val,
-				)
-				try:
-					farm.render(output[1])
-				except AccessForbiddenError:
-					button_event(TabFarmSettings.evShow)
-
+		if evt == evRender:
+			yRender.render()
 		elif evt == evRenderView:
 			yRender.render(True)
 		elif evt == evRenderAnim:
@@ -2798,10 +2642,6 @@ def button_event(evt):  # the function to handle Draw Button events
 			result = Draw.PupMenu(popupMsg)
 			if result == 0:
 				yRender.renderAnim()
-	elif evt == TabFarmSettings.evShow:
-		Tab = TabFarmSettings.tabNum
-	elif evt == TabFarmSettings.evEdit:
-		TabFarmSettings.event()
 	elif evt == TabObject.evShow:
 		Tab = TabObject.tabNum
 	elif evt == TabObject.evObjEdit:
@@ -2927,9 +2767,6 @@ def gui():				# the function to draw the screen
 	Draw.PushButton("Render anim", evRenderAnim, 150, height, 85, largeButtonHeight, "Render animation into Blender output dir")
 	Draw.PushButton("Render view", evRenderView, 245, height, 85, largeButtonHeight, "Render current 3D view")
 
-	height -= 10 + largeButtonHeight
-	Draw.PushButton("Render on corefarm", evRenderOnCorefarm, 10, height, 130 + 2 * 85 + 2 * 10, largeButtonHeight, "Render image on corefarm.com")
-
 	BGL.glColor3f(0, 0, 0)
 	height = drawSepLineText(10, height, 320, "YafaRay Settings")
 	height -= 10
@@ -2937,9 +2774,6 @@ def gui():				# the function to draw the screen
 	Draw.PushButton("Material", TabMaterial.evShow, 92, height, 74, largeButtonHeight, "Edit materials")
 	Draw.PushButton("World", TabWorld.evShow, 174, height, 74, largeButtonHeight, "Edit world settings")
 	Draw.PushButton("Settings", TabRenderer.evShow, 256, height, 74, largeButtonHeight, "Edit the render settings")
-
-	height -= 10 + largeButtonHeight
-	Draw.PushButton("Farm settings", TabFarmSettings.evShow, 10, height, 84, largeButtonHeight, "Edit farm settings")
 
 	#height += guiHeightOffset
 	#Draw.PushButton("Help", evShowHelp, 240, height, 90, guiWidgetHeight, "Short help")
@@ -2956,8 +2790,6 @@ def gui():				# the function to draw the screen
 		TabWorld.draw(height)
 	elif Tab == TabRenderer.tabNum: # settings for renderer
 		TabRenderer.draw(height)
-	elif Tab == TabFarmSettings.tabNum: # settings for corefarm
-		TabFarmSettings.draw(height)
 	elif Tab == helpTab:
 		drawHelp(height)
 	else:
@@ -2980,8 +2812,8 @@ def main():
 
 	global guiHeightOffset, guiWidgetHeight, guiDrawOffset, lastMousePosX,\
 	lastMousePosY, middlePressed, currentSelection,\
-	Tab, noTab, helpTab, evShowHelp, evRenderView, evRender, evRenderAnim, evRenderOnCorefarm,\
-	TabMaterial, TabWorld, TabRenderer, TabObject, TabFarmSettings, uniqueCounter, libmat, PanelHeight
+	Tab, noTab, helpTab, evShowHelp, evRenderView, evRender, evRenderAnim,\
+	TabMaterial, TabWorld, TabRenderer, TabObject, uniqueCounter, libmat, PanelHeight
 
 	PanelHeight = 100
 	libmat = False
@@ -3002,14 +2834,12 @@ def main():
 	evRenderView = getUniqueValue()
 	evRender = getUniqueValue()
 	evRenderAnim = getUniqueValue()
-	evRenderOnCorefarm = getUniqueValue()
 
 	TabMaterial = clTabMaterial()
 	TabWorld = clTabWorld()
 	TabRenderer = clTabRender()
 	TabObject = clTabObject()
-	TabFarmSettings = clTabFarmSettings()
 	Draw.Register(gui, event, button_event)  # registering the 3 callbacks
 
 if __name__ == "__main__":
-	main()
+    main()
