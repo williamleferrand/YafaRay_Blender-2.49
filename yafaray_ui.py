@@ -2745,18 +2745,22 @@ def button_event(evt):  # the function to handle Draw Button events
 		# seem to be pointless, since they should be set by the user at
 		# least once in any case
 		TabRenderer.setPropertyList()
-		for obj in Blender.Scene.GetCurrent().objects:
+
+		scene = Blender.Scene.GetCurrent()
+
+		if evt == evRenderOnCorefarm:
+			previousOutputMethod = TabRenderer.Renderer["output_method"]
+			log.debug("Changing output settings from %s to XML" % previousOutputMethod)
+			TabRenderer.Renderer["output_method"] = "XML"
+			copyParamsOverwrite(TabRenderer.Renderer, scene.properties['YafRay']['Renderer'])
+
+		for obj in scene.objects:
 			TabObject.setPropertyList(obj)
 
 		tmpMat = TabMaterial.curMat
 		for mat in Blender.Material.Get():
 			TabMaterial.setPropertyList(mat)
 		TabMaterial.curMat = tmpMat
-
-		if evt == evRenderOnCorefarm:
-			log.debug("Changing output settings to produce XML")
-			TabRenderer.guiRenderOutputMethod.val = TabRenderer.OutputMethodTypes.index("XML")
-			TabRenderer.event()
 
 		# Initialize interface
 		if TabRenderer.Renderer["output_method"] == "XML":
@@ -2780,6 +2784,11 @@ def button_event(evt):  # the function to handle Draw Button events
 					farm.render(output[1])
 				except AccessForbiddenError:
 					button_event(TabFarmSettings.evShow)
+				else:
+					if previousOutputMethod != TabRenderer.Renderer["output_method"]:
+						log.debug("Changing output settings back to %s" % previousOutputMethod)
+						TabRenderer.Renderer["output_method"] = previousOutputMethod
+						copyParamsOverwrite(TabRenderer.Renderer, scene.properties['YafRay']['Renderer'])
 
 		elif evt == evRenderView:
 			yRender.render(True)
