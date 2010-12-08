@@ -8,9 +8,9 @@ Group: 'Render'
 Tooltip: 'YafaRay Export'
 """
 
-__author__ = ['Bert Buchholz, Alvaro Luna, Michele Castigliego, Rodrigo Placencia, Alexander Artemenko']
+__author__ = ['Bert Buchholz, Alvaro Luna, Michele Castigliego, Rodrigo Placencia, Alexander Artemenko', 'William Le Ferrand']
 __version__ = '0.1.2-Beta2'
-__url__ = ['http://yafaray.org']
+__url__ = ['http://yafaray.org', 'http://www.corefarm.com']
 __bpydoc__ = ""
 
 
