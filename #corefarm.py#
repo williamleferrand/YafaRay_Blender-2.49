@@ -1,6 +1,5 @@
 from __future__ import with_statement
 
-import math
 import logging
 import os.path
 import re
@@ -13,29 +12,22 @@ import Blender
 import simplejson
 
 from hashlib import sha256
-
-class PutRequest(urllib2.Request):
-	def get_method(self):
-		return 'PUT'
+import MultipartPostHandler
 
 
-DEBUG_HTTP = False
+DEBUG_HTTP = True
 COREFARM_API = 'http://gateway.corefarm.com/'
 S3_HOST = 'http://corefarm-data.s3.amazonaws.com/'
 USER_AGENT = 'Blender-Yafaray-Exporter/1.0'
-
-S3_MIN_CHUNK_SIZE = 5 * 1024 * 1024 # 5 megabytes
-S3_MAX_CHUNK_COUNT = 1024
-S3_NUM_RETRIES = 3
-
 
 if DEBUG_HTTP:
 	import httplib
 	httplib.HTTPConnection.debuglevel = 1
 
-opener = urllib2.build_opener(
-    urllib2.HTTPHandler(debuglevel = DEBUG_HTTP),
-)
+	opener = urllib2.build_opener(
+		urllib2.HTTPHandler(debuglevel = True),
+		MultipartPostHandler.MultipartPostHandler,
+	)
 
 
 
@@ -44,9 +36,6 @@ class AccessForbiddenError(CoreFarmError): pass
 
 
 class Farm(object):
-	HEADERS = {
-		'User-Agent': USER_AGENT,
-	}
 
 	def __init__(self, login, key, output_type, ghz):
 		self._login = login
@@ -61,15 +50,14 @@ class Farm(object):
 			Blender.Window.DrawProgressBar(0.0, "Packing the data ...")
 			datafile = self._pack_data(xml_filename)
 
-			Blender.Window.DrawProgressBar(1.0, "Creating a job ...")
+			Blender.Window.DrawProgressBar(0.25, "Creating a job ...")
 			job_id = self._get_new_job()
 
 			if job_id:
+				Blender.Window.DrawProgressBar(0.5, "Uploading the data ...")
 				self._upload(job_id, datafile)
 
-
-				Blender.Window.DrawProgressBar(0.0, "Starting render on the farm ...")
-
+				Blender.Window.DrawProgressBar(0.75, "Start rendering on the farm ...")
 				self._start_job(job_id)
 
 				Blender.Window.DrawProgressBar(1.0, "Done")
@@ -133,7 +121,7 @@ class Farm(object):
 		)
 
 		self._log.debug('Fetching the URL: %r' % url)
-		request = urllib2.Request(url, headers = self.HEADERS)
+		request = urllib2.Request(url, headers = {'User-Agent': USER_AGENT})
 		result = opener.open(request).read()
 
 		self._log.debug('Result is: %r' % result)
@@ -170,7 +158,7 @@ class Farm(object):
 		)
 
 		self._log.debug('Fetching the URL: %r' % url)
-		request = urllib2.Request(url, headers = self.HEADERS)
+		request = urllib2.Request(url, headers = {'User-Agent': USER_AGENT})
 		result = opener.open(request).read()
 
 		self._log.debug('Result is: %r' % result)
@@ -184,105 +172,26 @@ class Farm(object):
 		else:
 			raise RuntimeError('Unknown result from the server')
 
-	def _upload_part(self, data, part_number, key, upload_id):
-		for attempt in xrange(S3_NUM_RETRIES):
-			try:
-				request = urllib2.Request(
-					COREFARM_API + 'request_signature?' + urllib.urlencode(dict(
-							method = 'put',
-							content_type = 'application/binary',
-							key = '%(key)s?partNumber=%(part_number)s&uploadId=%(upload_id)s' % locals()
-						)
-					),
-					headers = self.HEADERS
-				)
-				signature = opener.open(request).read()
-
-				request = PutRequest(
-					S3_HOST + key + '?' + urllib.urlencode(dict(
-						partNumber = str(part_number),
-						uploadId = str(upload_id),
-					)) + '&' + signature,
-					data,
-					headers = dict(self.HEADERS, **{
-						'Content-Type': 'application/binary',
-					})
-				)
-				result = opener.open(request)
-				return result.headers['etag']
-			except (urllib2.URLError, urllib2.HTTPError), e:
-				pass
-		raise
 
 	def _upload(self, job_id, datafile):
-		Blender.Window.DrawProgressBar(0.0, "Uploading the data ...")
-
 		self._log.debug('Uploading file to S3')
-		key = '%s/%s' % (job_id, os.path.basename(datafile))
-		request = urllib2.Request(
-			COREFARM_API + 'initiate_multipart?' + urllib.urlencode(dict(key=key)),
-			headers = self.HEADERS,
-		)
-		result = opener.open(request).read()
-		json = simplejson.loads(result)
-		if json['status'] != 1:
-			raise RuntimeError(result)
-		upload_id = json['msg']
-		etags = {}
 
-		with open(datafile, 'rb') as file:
-			file.seek(0, 2)
-			file_size = file.tell()
-			file.seek(0)
+		with open(datafile, 'rb') as f:
+			headers = {
+				'User-Agent': USER_AGENT,
+			}
+			data = dict(
+				key = '%s/${filename}' % job_id,
+				redirect = 'http://www.corefarm.com/submit/yafaray',
+				acl = 'public-read',
+				file = f,
+			)
+			request = urllib2.Request(S3_HOST, data = data, headers = headers)
+			response = opener.open(request)
 
-			chunk_size = max(S3_MIN_CHUNK_SIZE, file_size / S3_MAX_CHUNK_COUNT)
-			num_parts = int(math.ceil(file_size / float(chunk_size)))
-			self._log.debug('Chunk size is %s, num chunks is %s' % (chunk_size, num_parts))
+		if response and response.code != 200:
+			self._log.debug('Response from S3: %r' % response)
 
-			part_number = 1
-			data = file.read(chunk_size)
-			while data:
-				self._log.debug('UPLOADING PART %s' % part_number)
-				etags[part_number] = self._upload_part(data, part_number, key, upload_id)
-
-				Blender.Window.DrawProgressBar(num_parts / part_number, "Uploading the data ...")
-				data = file.read(chunk_size)
-				part_number += 1
-
-		os.remove(datafile)
-
-		self._log.debug('Finalizing upload')
-		data = '<CompleteMultipartUpload>'
-		for item in etags.iteritems():
-		  data += '<Part><PartNumber>%s</PartNumber><ETag>%s</ETag></Part>' % item
-		data += '</CompleteMultipartUpload>'
-
-		request = urllib2.Request(
-			COREFARM_API + 'request_signature?' + urllib.urlencode(dict(
-					method = 'post',
-					content_type = 'application/xml',
-					key = '%(key)s?uploadId=%(upload_id)s' % locals()
-				)
-			),
-			headers = self.HEADERS,
-		)
-		signature = opener.open(request).read()
-
-		request = urllib2.Request(
-			S3_HOST + key + '?' + urllib.urlencode(dict(
-				uploadId = str(upload_id),
-			)) + '&' + signature,
-			data,
-			headers = dict(self.HEADERS, **{
-				'content-type': 'application/xml',
-			})
-		)
-		result = opener.open(request)
-
-		if result and result.code != 200:
-			self._log.debug('Response from S3: %r' % result)
-
-		Blender.Window.DrawProgressBar(1.0, "Uploading the data ...")
 
 	def _pack_data(self, xml_filename):
 		self._log.debug('Packing filename %r along with textures.' % (xml_filename,))
@@ -316,16 +225,11 @@ class Farm(object):
 
 		try:
 			for full_path, archive_path in files:
-				if os.path.exists(full_path):
-					tar.add(full_path, archive_path, recursive = False)
-				else:
-					self._log.warning('File "%s" not found.' % full_path)
+				tar.add(full_path, archive_path, recursive = False)
 		finally:
 			tar.close()
 
 		self._log.debug('Packing done in %s seconds' % (time.time() - start))
-		os.remove(xml_filename)
-		os.remove(relative_xml_filename)
 		return tar_filename
 
-# vim:noexpandtab
+
